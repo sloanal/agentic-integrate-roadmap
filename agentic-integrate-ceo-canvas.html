@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic Integrate — Foundation → Capability Timeline</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #08090e;
+  --bg-card: #121520;
+  --border: #1e2232;
+  --border-light: #2a2f45;
+  --text: #eaedf6;
+  --text-secondary: #b0b5c9;
+  --text-muted: #6d7490;
+  --text-dim: #454c66;
+  --violet: #7c5cfc;
+  --green: #00d4aa;
+  --blue: #38bdf8;
+  --orange: #f0a050;
+  --pink: #e879a8;
+  --grad: linear-gradient(135deg, #7c5cfc 0%, #00d4aa 50%, #38bdf8 100%);
+  --font-h: 'Space Grotesk', system-ui, sans-serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'JetBrains Mono', monospace;
+  --ease: cubic-bezier(0.22,1,0.36,1);
+}
+
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-b); }
+
+#viewport {
+  position: fixed; inset: 0; overflow: hidden; cursor: grab;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(124,92,252,0.05), transparent 40%),
+    radial-gradient(circle at 70% 80%, rgba(0,212,170,0.04), transparent 40%),
+    var(--bg);
+}
+#viewport.dragging { cursor: grabbing; }
+#world { position: absolute; top: 0; left: 0; width: 6200px; height: 2100px; transform-origin: 0 0; }
+
+/* dotted canvas grid */
+#world::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(109,116,144,0.14) 1px, transparent 1px);
+  background-size: 44px 44px; pointer-events: none;
+}
+
+/* ---------- MONTH GRID ---------- */
+.mcol { position: absolute; top: 0; bottom: 0; width: 1px; background: linear-gradient(180deg, rgba(30,34,50,0.9), rgba(30,34,50,0.25)); pointer-events: none; }
+.mlabel {
+  position: absolute; top: 54px; transform: translateX(-50%);
+  font-family: var(--font-m); font-size: 15px; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--text-dim); pointer-events: none;
+}
+.lane-label {
+  position: absolute; font-family: var(--font-h); font-weight: 700;
+  font-size: 84px; letter-spacing: 10px; text-transform: uppercase;
+  color: rgba(69,76,102,0.13); pointer-events: none; white-space: nowrap;
+}
+
+/* ---------- PHASE HEADERS ---------- */
+.phase { position: absolute; top: -128px; transform: translateX(-50%); text-align: center; pointer-events: none; z-index: 3; }
+.phase .pk { display: block; font-family: var(--font-m); font-size: 13px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+.phase h2 { font-family: var(--font-h); font-weight: 700; font-size: 46px; letter-spacing: -1.2px; line-height: 1.04; white-space: nowrap; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* ---------- DIVIDER (capabilities above / foundations below) ---------- */
+#divider {
+  position: absolute; left: 40px; right: 40px; width: auto; height: 2px; top: 1163px;
+  background: linear-gradient(90deg, transparent, rgba(124,92,252,0.55) 12%, rgba(0,212,170,0.55) 50%, rgba(56,189,248,0.55) 88%, transparent);
+  box-shadow: 0 0 18px rgba(0,212,170,0.18); pointer-events: none; z-index: 1;
+}
+#divider::before {
+  content: '↑ CAPABILITIES'; position: absolute; left: 660px; top: -26px;
+  font-family: var(--font-m); font-size: 12px; font-weight: 600; letter-spacing: 3px;
+  color: var(--text-muted); white-space: nowrap;
+}
+#divider::after {
+  content: '↓ FOUNDATIONS'; position: absolute; left: 660px; top: 12px;
+  font-family: var(--font-m); font-size: 12px; font-weight: 600; letter-spacing: 3px;
+  color: var(--text-muted); white-space: nowrap;
+}
+
+/* ---------- TODAY LINE ---------- */
+#today {
+  position: absolute; top: 40px; bottom: 40px; width: 2px; left: 3390px;
+  background: linear-gradient(180deg, var(--pink), rgba(232,121,168,0.15));
+  box-shadow: 0 0 14px rgba(232,121,168,0.5); pointer-events: none; z-index: 3;
+}
+#today::before {
+  content: 'TODAY · JUL 13'; position: absolute; top: -4px; left: 12px;
+  font-family: var(--font-m); font-size: 12px; font-weight: 600; letter-spacing: 2px;
+  color: var(--pink); white-space: nowrap;
+}
+
+/* ---------- EDGES ---------- */
+#edges { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: visible; }
+.edge { fill: none; stroke-width: 2; opacity: 0.5; transition: opacity 0.3s; }
+.edge.flow { stroke-dasharray: 5 9; animation: dashmove 1.4s linear infinite; }
+@keyframes dashmove { to { stroke-dashoffset: -14; } }
+.edge.eg { stroke: rgba(0,212,170,0.65); }
+.edge.eo { stroke: rgba(240,160,80,0.7); }
+.edge.ev { stroke: rgba(124,92,252,0.7); }
+.edge.bi { stroke: var(--pink); stroke-width: 2.5; opacity: 0.9; }
+#world.focus .edge { opacity: 0.05; }
+#world.focus .edge.hi { opacity: 1; stroke-width: 2.5; }
+
+/* ---------- NODES ---------- */
+.node {
+  position: absolute; width: 264px; z-index: 4;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 13px; padding: 15px 17px;
+  transition: opacity 0.3s, transform 0.3s var(--ease), border-color 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+}
+.node:hover { transform: translateY(-3px); box-shadow: 0 14px 44px rgba(0,0,0,0.5); z-index: 6; }
+#world.focus .node { opacity: 0.18; }
+#world.focus .node.hi { opacity: 1; }
+.node.shipped { border-top: 2px solid var(--green); }
+.node.progress { border-top: 2px solid var(--orange); }
+.node.planned { border-top: 2px solid var(--violet); }
+.node.shipped:hover, #world.focus .node.shipped.hi { border-color: rgba(0,212,170,0.5); }
+.node.progress:hover, #world.focus .node.progress.hi { border-color: rgba(240,160,80,0.5); }
+.node.planned:hover, #world.focus .node.planned.hi { border-color: rgba(124,92,252,0.5); }
+
+.node .type {
+  font-family: var(--font-m); font-size: 8.5px; font-weight: 600;
+  letter-spacing: 1.6px; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px; margin-bottom: 7px;
+}
+.node.f .type { color: var(--blue); }
+.node.c .type { color: var(--pink); }
+.node .type::before { content: ''; width: 7px; height: 7px; flex-shrink: 0; }
+.node.f .type::before { background: var(--blue); border-radius: 2px; }
+.node.c .type::before { background: var(--pink); border-radius: 50%; }
+.node .type .st { margin-left: auto; }
+.node.shipped .st { color: var(--green); }
+.node.progress .st { color: var(--orange); }
+.node.planned .st { color: var(--violet); }
+
+.node h4 { font-family: var(--font-h); font-size: 15px; font-weight: 700; letter-spacing: -0.3px; line-height: 1.25; margin-bottom: 3px; }
+.node .tech { font-family: var(--font-m); font-size: 9.5px; color: var(--text-muted); letter-spacing: 0.3px; display: block; margin-bottom: 8px; }
+.node p { font-size: 11.5px; color: var(--text-secondary); line-height: 1.55; }
+
+/* capability nodes get a subtle glow */
+.node.c { background: linear-gradient(180deg, rgba(232,121,168,0.05), rgba(18,21,32,1) 40%), var(--bg-card); }
+.node.c.shipped { box-shadow: 0 0 26px rgba(0,212,170,0.07); }
+.node.c.progress { box-shadow: 0 0 26px rgba(240,160,80,0.07); }
+.node.c.planned { box-shadow: 0 0 26px rgba(124,92,252,0.07); }
+
+/* ---------- PANELS (intro / outro) ---------- */
+.panel { position: absolute; z-index: 4; width: 460px; }
+.panel .kicker {
+  font-family: var(--font-h); font-size: 12px; font-weight: 600;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--green); margin-bottom: 14px;
+}
+.panel h1 {
+  font-family: var(--font-h); font-weight: 700; font-size: 46px;
+  letter-spacing: -1.8px; line-height: 1.06;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 18px;
+}
+.panel p { font-size: 14.5px; color: var(--text-secondary); line-height: 1.7; }
+.panel .hint {
+  margin-top: 22px; font-family: var(--font-m); font-size: 10.5px;
+  letter-spacing: 1.5px; color: var(--text-dim); animation: hintpulse 2.5s ease-in-out infinite;
+}
+@keyframes hintpulse { 0%,100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* ---------- FIXED UI ---------- */
+#hud-legend {
+  position: fixed; top: 18px; left: 20px; z-index: 20;
+  background: rgba(14,16,23,0.85); border: 1px solid var(--border); border-radius: 12px;
+  padding: 12px 16px; backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+#hud-legend .brand { font-family: var(--font-h); font-weight: 700; font-size: 13px; background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-right: 4px; }
+.lg { display: flex; align-items: center; gap: 6px; font-family: var(--font-h); font-size: 10.5px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.4px; }
+.lg i { width: 8px; height: 8px; display: inline-block; }
+.lg .sq { border-radius: 2px; background: var(--blue); }
+.lg .ci { border-radius: 50%; background: var(--pink); }
+.lg .dg { border-radius: 50%; background: var(--green); }
+.lg .do { border-radius: 50%; background: var(--orange); }
+.lg .dv { border-radius: 50%; background: var(--violet); }
+
+#hud-nav {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 20;
+  background: rgba(14,16,23,0.88); border: 1px solid var(--border); border-radius: 999px;
+  padding: 7px; backdrop-filter: blur(12px);
+  display: flex; gap: 4px; align-items: center;
+}
+#hud-nav button {
+  font-family: var(--font-h); font-size: 11.5px; font-weight: 600; letter-spacing: 0.3px;
+  background: transparent; border: none; color: var(--text-muted);
+  padding: 8px 15px; border-radius: 999px; cursor: pointer; transition: all 0.25s var(--ease);
+  white-space: nowrap;
+}
+#hud-nav button:hover { color: var(--text); background: rgba(124,92,252,0.1); }
+#hud-nav button.on { color: #fff; background: var(--violet); box-shadow: 0 0 16px rgba(124,92,252,0.4); }
+
+#hud-zoom {
+  position: fixed; bottom: 20px; right: 20px; z-index: 20;
+  display: flex; flex-direction: column; gap: 6px;
+}
+#hud-zoom button {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(14,16,23,0.88); border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 16px; cursor: pointer;
+  transition: all 0.25s var(--ease); backdrop-filter: blur(12px);
+  font-family: var(--font-h); font-weight: 600;
+}
+#hud-zoom button:hover { border-color: var(--violet); color: var(--text); }
+
+#hint-bar {
+  position: fixed; bottom: 22px; left: 20px; z-index: 20;
+  font-family: var(--font-m); font-size: 9.5px; color: var(--text-dim); letter-spacing: 1.2px;
+}
+
+@media (max-width: 900px) {
+  #hud-legend { max-width: calc(100vw - 40px); gap: 10px; }
+  #hint-bar { display: none; }
+  #hud-nav { max-width: calc(100vw - 90px); overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<div id="hud-legend">
+  <span class="brand">AGENTIC INTEGRATE</span>
+  <span class="lg"><i class="sq"></i> Foundation</span>
+  <span class="lg"><i class="ci"></i> Capability</span>
+  <span class="lg"><i class="dg"></i> Shipped</span>
+  <span class="lg"><i class="do"></i> In Progress</span>
+  <span class="lg"><i class="dv"></i> Planned</span>
+</div>
+
+<div id="hud-nav">
+  <button data-era="overview" class="on">Overview</button>
+  <button data-era="shipped">Shipped</button>
+  <button data-era="inflight">In Flight</button>
+  <button data-era="agent">The Agent</button>
+  <button data-era="horizon">Horizon</button>
+</div>
+
+<div id="hud-zoom">
+  <button id="zin" title="Zoom in">+</button>
+  <button id="zout" title="Zoom out">−</button>
+  <button id="zfit" title="Fit all">⤢</button>
+</div>
+
+<div id="hint-bar">DRAG TO PAN · PINCH / ⌘+SCROLL TO ZOOM · CLICK A NODE TO FOCUS ITS CONNECTIONS</div>
+
+<div id="viewport">
+  <div id="world">
+    <svg id="edges" width="6200" height="2100"></svg>
+
+    <!-- month grid -->
+    <div class="mcol" style="left:700px"></div><div class="mlabel" style="left:700px">Mar</div>
+    <div class="mcol" style="left:1300px"></div><div class="mlabel" style="left:1300px">Apr</div>
+    <div class="mcol" style="left:1900px"></div><div class="mlabel" style="left:1900px">May</div>
+    <div class="mcol" style="left:2500px"></div><div class="mlabel" style="left:2500px">Jun</div>
+    <div class="mcol" style="left:3100px"></div><div class="mlabel" style="left:3100px">Jul</div>
+    <div class="mcol" style="left:3800px"></div><div class="mlabel" style="left:3800px">Aug</div>
+    <div class="mcol" style="left:4500px"></div><div class="mlabel" style="left:4500px">Sep</div>
+    <div class="mcol" style="left:5200px"></div><div class="mlabel" style="left:5200px">Oct +</div>
+    <div id="today"></div>
+    <div id="divider"></div>
+
+    <div class="lane-label" style="left:760px; top:180px;">Capabilities</div>
+    <div class="lane-label" style="left:3450px; top:180px;">Capabilities</div>
+    <div class="lane-label" style="left:760px; top:1900px;">Foundations</div>
+    <div class="lane-label" style="left:3450px; top:1900px;">Foundations</div>
+
+    <!-- ============ PHASE HEADERS (above the whole chart) ============ -->
+    <div class="phase" style="left:1000px;"><span class="pk">Phase 01</span><h2>Agent can summarize</h2></div>
+    <div class="phase" style="left:2150px;"><span class="pk">Phase 02</span><h2>Agent understands risk</h2></div>
+    <div class="phase" style="left:3050px;"><span class="pk">Phase 03</span><h2>Agent understands everything</h2></div>
+    <div class="phase" style="left:3850px;"><span class="pk">Phase 04</span><h2>Agent can change everything</h2></div>
+    <div class="phase" style="left:4512px;"><span class="pk">Phase 05</span><h2>Agent can build</h2></div>
+    <div class="phase" style="left:5340px;"><span class="pk">Phase 06</span><h2>Agent can be accessed off platform</h2></div>
+
+    <!-- ============ INTRO PANEL ============ -->
+    <div class="panel" style="left:90px; top:640px;">
+      <h1>Agentic Integrate — July 2026 update</h1>
+      <div class="hint">DRAG RIGHT TO BEGIN →</div>
+    </div>
+
+    <!-- ============ FOUNDATIONS (below) ============ -->
+    <div class="node f shipped" data-id="aiprev" style="left:100px; top:1400px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>All Previous AI Infrastructure Work</h4>
+      <span class="tech">AI platform service · self-hosted models · vector store</span>
+      <p>Everything the earlier phases stood up — the AI service and our self-hosted inference — the base every capability since has built on.</p>
+    </div>
+    <div class="node f shipped" data-id="lang" style="left:640px; top:1180px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>AI Observability</h4>
+      <span class="tech">Langfuse · self-hosted tracing + evals</span>
+      <p>Every AI interaction is traced and scored — quality is measured, not assumed.</p>
+    </div>
+    <div class="node f shipped" data-id="dag" style="left:640px; top:1400px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>Data Orchestration</h4>
+      <span class="tech">Dagster · partitioned assets</span>
+      <p>Repeatable pipelines: re-index everything or swap models with one re-run.</p>
+    </div>
+    <div class="node f shipped" data-id="qd" style="left:640px; top:1620px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>Vector Store</h4>
+      <span class="tech">Qdrant · multi-tenant, ACL-filtered</span>
+      <p>The searchable memory of every schedule object, filtered by permission on every query.</p>
+    </div>
+    <div class="node f shipped" data-id="emb" style="left:1280px; top:1290px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>Embedding Service</h4>
+      <span class="tech">bge-m3 · dense + sparse</span>
+      <p>Gives every object a meaning-aware fingerprint — find things by what they mean, not what they're called.</p>
+    </div>
+    <div class="node f shipped" data-id="acl" style="left:1280px; top:1530px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>Permission-Safe Retrieval</h4>
+      <span class="tech">object_access ACL · pre-filter + post-check</span>
+      <p>The AI can only ever see what each user is allowed to see.</p>
+    </div>
+    <div class="node f shipped" data-id="cdc" style="left:1980px; top:1400px;">
+      <div class="type">Foundation <span class="st">● Shipped</span></div>
+      <h4>Real-Time Data Sync</h4>
+      <span class="tech">WAL tailer · CDC → RabbitMQ → Qdrant</span>
+      <p>Any schedule change is searchable by the AI within seconds — answers are never stale.</p>
+    </div>
+    <div class="node f shipped" data-id="riskv1" style="left:1600px; top:1200px;">
+      <div class="type">Foundation <span class="st">● Shipped · Apr</span></div>
+      <h4>Risk Engine v1</h4>
+      <span class="tech">rules engine · overdue + blocked detection</span>
+      <p>Overdue work and blocked dependencies surface automatically — the first risk signals.</p>
+    </div>
+    <div class="node f shipped" data-id="riskv2" style="left:1980px; top:1180px;">
+      <div class="type">Foundation <span class="st">● Shipped · May</span></div>
+      <h4>Risk Engine v2</h4>
+      <span class="tech">signal expansion · scope growth + open questions</span>
+      <p>Adds scope-growth and unanswered-question detection — a fuller, earlier risk picture.</p>
+    </div>
+    <div class="node f shipped" data-id="nclean" style="left:1600px; top:1440px;">
+      <div class="type">Foundation <span class="st">● Shipped · Apr</span></div>
+      <h4>Notification Clean Up</h4>
+      <span class="tech">alert surface consolidation</span>
+      <p>A single coherent alert surface — AI-generated signal replaces raw notification volume.</p>
+    </div>
+    <div class="node f progress" data-id="ss" style="left:2500px; top:1250px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Search Service</h4>
+      <span class="tech">Rust · Qdrant hybrid, dense + sparse, RRF</span>
+      <p>One fast, permission-checked semantic query engine. The single gate for four capabilities.</p>
+    </div>
+    <div class="node f progress" data-id="cd" style="left:2980px; top:1490px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Classify &amp; Dispatch</h4>
+      <span class="tech">NL → typed intent · tool registry</span>
+      <p>The front door: every request becomes a typed intent, routed deterministically. One entry point, one eval suite.</p>
+    </div>
+    <div class="node f progress" data-id="ing" style="left:2980px; top:1740px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Document Pipeline</h4>
+      <span class="tech">S3 → GPU Docling workers · parse, chunk, embed</span>
+      <p>Turns PDFs, spreadsheets, and emails into structured, searchable schedule knowledge.</p>
+    </div>
+    <div class="node f planned" data-id="vllm" style="left:3660px; top:1320px;">
+      <div class="type">Foundation <span class="st">○ Planned</span></div>
+      <h4>Model Serving</h4>
+      <span class="tech">vLLM in-house · HA, per-tier endpoints</span>
+      <p>Our own highly-available inference — fast, private, and residency-safe for gov tenants.</p>
+    </div>
+    <div class="node f planned" data-id="cs" style="left:3660px; top:1580px;">
+      <div class="type">Foundation <span class="st">○ Planned</span></div>
+      <h4>ChangeSet + Approval</h4>
+      <span class="tech">propose → review → existing write API</span>
+      <p>The safety contract: AI proposes changes, humans approve, the proven app executes. The model has no write tool.</p>
+    </div>
+    <div class="node f planned" data-id="mcpb" style="left:4560px; top:1450px;">
+      <div class="type">Foundation <span class="st">○ Planned</span></div>
+      <h4>MCP Base</h4>
+      <span class="tech">one server + one client over the registry</span>
+      <p>Projects our tools to any AI client, and lets our agent call external tools — built once.</p>
+    </div>
+    <div class="node f progress" data-id="treg" style="left:4000px; top:1300px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Tool / Action Registry</h4>
+      <span class="tech">{name, schema, handler} · one source of truth</span>
+      <p>Every read and propose tool defined once — served in-process to dispatch and the agent loop, and published as a curated subset over MCP.</p>
+    </div>
+    <div class="node f progress" data-id="contracts" style="left:4000px; top:1540px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Shared Typed Contracts</h4>
+      <span class="tech">schemars + typeshare → Rust · Python · TS</span>
+      <p>QuerySpec, ChangeSet / ChangeOp, ChartSpec and tool schemas generated from one definition — no lane forks the shapes the agent produces.</p>
+    </div>
+    <div class="node f progress" data-id="eval" style="left:3320px; top:1730px;">
+      <div class="type">Foundation <span class="st">◐ In Progress</span></div>
+      <h4>Eval Harness + Judge</h4>
+      <span class="tech">DeepEval suites · groundedness judge (CI gate)</span>
+      <p>Labeled regression sets per capability plus an LLM-as-judge — the release gate that lets the agent and Q&amp;A ship safely.</p>
+    </div>
+
+    <!-- ============ CAPABILITIES (above) ============ -->
+    <div class="node c shipped" data-id="nsum1" style="left:640px; top:330px;">
+      <div class="type">Capability <span class="st">● Shipped · Mar</span></div>
+      <h4>Notification Summary v1</h4>
+      <p>The first pass — a flood of raw alerts distilled into one readable daily digest.</p>
+    </div>
+    <div class="node c shipped" data-id="nsum2" style="left:1180px; top:500px;">
+      <div class="type">Capability <span class="st">● Shipped · Apr</span></div>
+      <h4>Notification Summary v2</h4>
+      <p>Sharper ranking and grouping — the digest learns what actually matters to each user.</p>
+    </div>
+    <div class="node c shipped" data-id="atrisk" style="left:1760px; top:640px;">
+      <div class="type">Capability <span class="st">● Shipped · May</span></div>
+      <h4>At-Risk Projects</h4>
+      <p>One place to see every project the engine has flagged — sorted by how close it is to slipping.</p>
+    </div>
+    <div class="node c shipped" data-id="whatsrisky" style="left:2380px; top:640px;">
+      <div class="type">Capability <span class="st">● Shipped · Jun</span></div>
+      <h4>What's Risky</h4>
+      <p>Ask why a project is flagged and get the specific signals behind it, in plain language.</p>
+    </div>
+    <div class="node c shipped" data-id="ask" style="left:2260px; top:330px;">
+      <div class="type">Capability <span class="st">● Shipped</span></div>
+      <h4>Ask Integrate v1</h4>
+      <p>"What changed this week? What's falling behind?" — answered in plain language, grounded in live data, with clickable sources.</p>
+    </div>
+
+    <div class="node c progress" data-id="nls" style="left:3040px; top:280px;">
+      <div class="type">Capability <span class="st">◐ In Progress</span></div>
+      <h4>Natural Language Search</h4>
+      <p>Ask for what you need in plain English; see exactly how it was interpreted as editable chips. Zero query syntax.</p>
+    </div>
+    <div class="node c progress" data-id="chart" style="left:3440px; top:520px;">
+      <div class="type">Capability <span class="st">◐ In Progress</span></div>
+      <h4>Charts Basic</h4>
+      <p>The foundational charting surface — build and configure charts by hand, setting the stage for the prompt-driven flows that follow.</p>
+    </div>
+    <div class="node c shipped" data-id="dropxl" style="left:2900px; top:960px;">
+      <div class="type">Capability <span class="st">● Shipped · Jul</span></div>
+      <h4>Drop Zone — Excel</h4>
+      <p>Drop an Excel file and it comes back as proposed schedule rows — the first cut of document capture.</p>
+    </div>
+    <div class="node c progress" data-id="drop" style="left:3440px; top:960px;">
+      <div class="type">Capability <span class="st">◐ In Progress</span></div>
+      <h4>Drop Zone Capture</h4>
+      <p>Drop in a PDF or spreadsheet; it comes back as proposed schedule updates you review and accept.</p>
+    </div>
+
+    <div class="node c planned" data-id="agentm" style="left:3720px; top:300px;">
+      <div class="type">Capability <span class="st">○ Planned · Aug</span></div>
+      <h4>Schedule Agent — Manipulate</h4>
+      <p>The centerpiece begins: "push the turbine milestones out two weeks" — the agent proposes every edit, you approve each one.</p>
+    </div>
+    <div class="node c planned" data-id="sugg" style="left:4080px; top:560px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>AI Suggestions</h4>
+      <p>Sensible owners, dates, and descriptions filled in as you work — learned from how your team actually plans.</p>
+    </div>
+    <div class="node c planned" data-id="agents" style="left:3720px; top:820px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Agents Page</h4>
+      <p>A home for everything the AI is doing on your behalf — every run, in flight or done.</p>
+    </div>
+    <div class="node c planned" data-id="riskui" style="left:4080px; top:820px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Risk UI</h4>
+      <p>Integrate's risk experience unified into one dedicated surface — every signal, flag and mitigation in a single place.</p>
+    </div>
+
+    <div class="node c planned" data-id="agentb" style="left:4380px; top:300px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Schedule Agent — Build</h4>
+      <p>Generate entire schedules from a description: "make a 5-year engine development program" — reviewed as a draft, saved on approval.</p>
+    </div>
+    <div class="node c planned" data-id="email" style="left:5040px; top:560px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Email Capture</h4>
+      <p>CC Integrate on an email; attachments and updates become proposed schedule changes to approve.</p>
+    </div>
+
+    <div class="node c planned" data-id="chartai" style="left:4380px; top:560px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Charts Agentic</h4>
+      <p>The agent builds and refines visuals in a loop — "now break that down by program and add a trend line" — each step a validated spec.</p>
+    </div>
+
+    <div class="node c planned" data-id="ext" style="left:5480px; top:420px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>@Integrate anywhere</h4>
+      <p>Claude, Slack agents, customer tooling — all can search, ask, and propose changes through MCP. Same approvals, same permissions.</p>
+    </div>
+    <div class="node c planned" data-id="callrec" style="left:5480px; top:700px;">
+      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <h4>Bi-Directional Call Records</h4>
+      <p>Records flow out to any MCP client and results flow back in — same approvals, same ACL, both directions.</p>
+    </div>
+
+    <!-- ============ OUTRO PANEL ============ -->
+    <div class="panel" style="left:5480px; top:1180px; width:420px;">
+      <div class="kicker" style="color:var(--violet)">The takeaway</div>
+      <h1 style="font-size:32px; letter-spacing:-1.2px;">By the end: an Integrate you run by asking.</h1>
+      <p>One agent that summarizes the noise, understands every risk, and answers from live data with sources — then <b style="color:var(--text)">changes and builds whole schedules on command</b>, every edit reviewed before it saves. Reachable from the app or any AI client, always on the existing permissions. The plumbing is paid for; from here, new capability is <b style="color:var(--text)">assembly, not invention</b>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const vp = document.getElementById('viewport');
+  const world = document.getElementById('world');
+  const svg = document.getElementById('edges');
+  const W = 6200, H = 2100;
+
+  /* ---------- EDGES ---------- */
+  // [from, to] — color follows the *target* status
+  const EDGES = [
+    // shipped era
+    ['dag','riskv1'], ['dag','riskv2'], ['riskv1','riskv2'],
+    ['aiprev','nsum1'], ['aiprev','nsum2'], ['aiprev','whatsrisky'],
+    ['lang','ask'], ['emb','ask'], ['qd','ask'], ['acl','ask'], ['cdc','ask'],
+    ['nclean','nsum2'],
+    ['riskv1','atrisk'], ['riskv2','whatsrisky'], ['atrisk','riskui'], ['whatsrisky','riskui'],
+    ['emb','cdc'], ['qd','cdc'], ['emb','nclean'],
+    // shipped foundations feed in-progress foundations
+    ['emb','ss'], ['qd','ss'], ['cdc','ss'], ['acl','ss'],
+    // in-progress
+    ['ss','nls'], ['cd','nls'], ['cd','chart'], ['dropxl','drop'], ['ing','drop'],
+    // planned — agent + platform foundations
+    ['ss','sugg'], ['emb','sugg'], ['agentm','sugg'],
+    ['cd','agentm'], ['ss','agentm'], ['vllm','agentm'], ['cs','agentm'], ['treg','agentm'], ['contracts','agentm'], ['eval','agentm'],
+    ['agentm','agentb'], ['treg','agentb'], ['contracts','agentb'],
+    ['contracts','cs'],
+    ['chart','chartai'], ['agentm','chartai'],
+    ['ing','email'], ['cs','email'],
+    ['treg','mcpb'], ['cd','mcpb'], ['mcpb','ext'], ['mcpb','callrec']
+  ];
+
+  const nodes = {};
+  document.querySelectorAll('.node').forEach(n => nodes[n.dataset.id] = n);
+
+  function statusClass(el) {
+    return el.classList.contains('shipped') ? 'eg' : el.classList.contains('progress') ? 'eo' : 'ev';
+  }
+
+  const edgeEls = [];
+  const NS = 'http://www.w3.org/2000/svg';
+  function ensureDefs() {
+    const defs = document.createElementNS(NS, 'defs');
+    ['start', 'end'].forEach(pos => {
+      const m = document.createElementNS(NS, 'marker');
+      m.setAttribute('id', 'arrow-' + pos);
+      m.setAttribute('viewBox', '0 0 10 10');
+      m.setAttribute('refX', pos === 'end' ? '8' : '2');
+      m.setAttribute('refY', '5');
+      m.setAttribute('markerWidth', '6'); m.setAttribute('markerHeight', '6');
+      m.setAttribute('orient', pos === 'end' ? 'auto' : 'auto-start-reverse');
+      const tip = document.createElementNS(NS, 'path');
+      tip.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+      tip.setAttribute('fill', '#e879a8');
+      m.appendChild(tip); defs.appendChild(m);
+    });
+    svg.appendChild(defs);
+  }
+  function drawEdges() {
+    svg.innerHTML = '';
+    edgeEls.length = 0;
+    ensureDefs();
+    EDGES.forEach(([a, b, flag]) => {
+      const na = nodes[a], nb = nodes[b];
+      if (!na || !nb) return;
+      const p = document.createElementNS(NS, 'path');
+      if (flag === 'bi') {
+        // vertical bidirectional link with an arrowhead on each end
+        const up = na.offsetTop <= nb.offsetTop ? na : nb;
+        const dn = up === na ? nb : na;
+        const x1 = up.offsetLeft + up.offsetWidth / 2, y1 = up.offsetTop + up.offsetHeight;
+        const x2 = dn.offsetLeft + dn.offsetWidth / 2, y2 = dn.offsetTop;
+        const my = (y1 + y2) / 2;
+        p.setAttribute('d', `M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`);
+        p.setAttribute('class', 'edge bi');
+        p.setAttribute('marker-start', 'url(#arrow-start)');
+        p.setAttribute('marker-end', 'url(#arrow-end)');
+      } else {
+        const x1 = na.offsetLeft + na.offsetWidth;
+        const y1 = na.offsetTop + na.offsetHeight / 2;
+        const x2 = nb.offsetLeft;
+        const y2 = nb.offsetTop + nb.offsetHeight / 2;
+        const dx = Math.max(60, (x2 - x1) * 0.45);
+        p.setAttribute('d', `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`);
+        p.setAttribute('class', 'edge flow ' + statusClass(nodes[b]));
+      }
+      p.dataset.from = a; p.dataset.to = b;
+      svg.appendChild(p);
+      edgeEls.push(p);
+    });
+  }
+
+  /* ---------- FOCUS ON HOVER/CLICK ---------- */
+  let focusId = null;
+  function setFocus(id) {
+    focusId = id;
+    if (!id) {
+      world.classList.remove('focus');
+      Object.values(nodes).forEach(n => n.classList.remove('hi'));
+      edgeEls.forEach(e => e.classList.remove('hi'));
+      return;
+    }
+    world.classList.add('focus');
+    Object.values(nodes).forEach(n => n.classList.remove('hi'));
+    edgeEls.forEach(e => e.classList.remove('hi'));
+    nodes[id].classList.add('hi');
+    edgeEls.forEach(e => {
+      if (e.dataset.from === id || e.dataset.to === id) {
+        e.classList.add('hi');
+        nodes[e.dataset.from].classList.add('hi');
+        nodes[e.dataset.to].classList.add('hi');
+      }
+    });
+  }
+  Object.entries(nodes).forEach(([id, n]) => {
+    n.addEventListener('mouseenter', () => setFocus(id));
+    n.addEventListener('mouseleave', () => { if (focusId === id) setFocus(null); });
+    n.addEventListener('click', e => { e.stopPropagation(); flyToNode(n); });
+  });
+  vp.addEventListener('click', () => setFocus(null));
+
+  /* ---------- PAN / ZOOM ---------- */
+  const view = { x: 0, y: 0, s: 0.5 };
+  const MINS = 0.12, MAXS = 1.6;
+  function apply() {
+    world.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`;
+  }
+
+  let anim = null;
+  function flyTo(tx, ty, ts, dur = 850) {
+    cancelAnimationFrame(anim);
+    const sx = view.x, sy = view.y, ss = view.s, t0 = performance.now();
+    function step(t) {
+      let k = Math.min(1, (t - t0) / dur);
+      k = 1 - Math.pow(1 - k, 3);
+      view.x = sx + (tx - sx) * k;
+      view.y = sy + (ty - sy) * k;
+      view.s = ss + (ts - ss) * k;
+      apply();
+      if (k < 1) anim = requestAnimationFrame(step);
+    }
+    anim = requestAnimationFrame(step);
+  }
+
+  function centerOn(wx, wy, s) {
+    flyTo(innerWidth / 2 - wx * s, innerHeight / 2 - wy * s, s);
+  }
+  function flyToNode(n) {
+    const wx = n.offsetLeft + n.offsetWidth / 2;
+    const wy = n.offsetTop + n.offsetHeight / 2;
+    centerOn(wx, wy, Math.max(view.s, 0.9));
+  }
+  function fitAll() {
+    const s = Math.min(innerWidth / W, innerHeight / H) * 0.94;
+    flyTo((innerWidth - W * s) / 2, (innerHeight - H * s) / 2, s);
+  }
+
+  // drag
+  let drag = null;
+  vp.addEventListener('pointerdown', e => {
+    if (e.target.closest('.node')) { /* allow clicking nodes but still permit drag from them */ }
+    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false };
+    vp.classList.add('dragging');
+    vp.setPointerCapture(e.pointerId);
+    cancelAnimationFrame(anim);
+  });
+  vp.addEventListener('pointermove', e => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    view.x = drag.vx + dx; view.y = drag.vy + dy;
+    apply();
+  });
+  vp.addEventListener('pointerup', e => {
+    if (drag && drag.moved) {
+      // swallow the click that follows a drag
+      const stop = ev => { ev.stopPropagation(); document.removeEventListener('click', stop, true); };
+      document.addEventListener('click', stop, true);
+    }
+    drag = null; vp.classList.remove('dragging');
+  });
+
+  // wheel: pinch/ctrl = zoom at cursor, otherwise pan
+  vp.addEventListener('wheel', e => {
+    e.preventDefault();
+    cancelAnimationFrame(anim);
+    if (e.ctrlKey || e.metaKey) {
+      const f = Math.exp(-e.deltaY * 0.0022);
+      const ns = Math.min(MAXS, Math.max(MINS, view.s * f));
+      const k = ns / view.s;
+      view.x = e.clientX - (e.clientX - view.x) * k;
+      view.y = e.clientY - (e.clientY - view.y) * k;
+      view.s = ns;
+    } else {
+      view.x -= e.deltaX;
+      view.y -= e.deltaY;
+    }
+    apply();
+  }, { passive: false });
+
+  // double-click zoom
+  vp.addEventListener('dblclick', e => {
+    const ns = Math.min(MAXS, view.s * 1.6);
+    const k = ns / view.s;
+    view.x = e.clientX - (e.clientX - view.x) * k;
+    view.y = e.clientY - (e.clientY - view.y) * k;
+    view.s = ns;
+    flyTo(view.x, view.y, ns, 250);
+  });
+
+  // zoom buttons
+  function zoomBy(f) {
+    const cx = innerWidth / 2, cy = innerHeight / 2;
+    const ns = Math.min(MAXS, Math.max(MINS, view.s * f));
+    const k = ns / view.s;
+    flyTo(cx - (cx - view.x) * k, cy - (cy - view.y) * k, ns, 300);
+  }
+  document.getElementById('zin').onclick = () => zoomBy(1.35);
+  document.getElementById('zout').onclick = () => zoomBy(1 / 1.35);
+  document.getElementById('zfit').onclick = fitAll;
+
+  /* ---------- ERAS ---------- */
+  const eras = {
+    overview: () => fitAll(),
+    shipped:  () => centerOn(1550, 1000, eraScale()),
+    inflight: () => centerOn(3250, 1000, eraScale()),
+    agent:    () => centerOn(4250, 950, eraScale()),
+    horizon:  () => centerOn(5250, 850, eraScale())
+  };
+  function eraScale() { return Math.min(innerWidth / 2350, innerHeight / 2100) ; }
+  const navBtns = document.querySelectorAll('#hud-nav button');
+  navBtns.forEach(b => b.addEventListener('click', () => {
+    navBtns.forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    eras[b.dataset.era]();
+  }));
+
+  // keyboard
+  document.addEventListener('keydown', e => {
+    const step = 120;
+    if (e.key === 'ArrowRight') { view.x -= step; apply(); }
+    if (e.key === 'ArrowLeft')  { view.x += step; apply(); }
+    if (e.key === 'ArrowUp')    { view.y += step; apply(); }
+    if (e.key === 'ArrowDown')  { view.y -= step; apply(); }
+    if (e.key === '+' || e.key === '=') zoomBy(1.3);
+    if (e.key === '-') zoomBy(1 / 1.3);
+    if (e.key === '0') fitAll();
+    if (e.key >= '1' && e.key <= '5') navBtns[+e.key - 1].click();
+  });
+
+  /* ---------- INIT ---------- */
+  drawEdges();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawEdges);
+  window.addEventListener('resize', drawEdges);
+
+  // opening move: start tight on the intro, then ease out to overview
+  view.s = 0.85;
+  view.x = innerWidth / 2 - 320 * 0.85;
+  view.y = innerHeight / 2 - 900 * 0.85;
+  apply();
+  setTimeout(fitAll, 1400);
+})();
+</script>
+</body>
+</html>
