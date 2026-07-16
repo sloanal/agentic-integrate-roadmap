@@ -305,9 +305,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <div class="type">Foundation <span class="st">● Shipped</span></div>
       <h4>Data Orchestration</h4>
       <span class="tech">Dagster · partitioned assets</span>
-      <p>Repeatable pipelines: re-index everything or swap models with one re-run.</p>
+      <p>The behind-the-scenes engine that keeps the AI's data fresh and lets us rebuild it reliably. Swapping in a better model is a careful, planned switch — not a risky one-click change. In time it can do much more: moving and refreshing data across the whole app.</p>
     </div>
-    <div class="node f shipped" data-id="qd" style="left:640px; top:1620px;">
+    <div class="node f shipped" data-id="qd" style="left:640px; top:1710px;">
       <div class="type">Foundation <span class="st">● Shipped</span></div>
       <h4>Vector Store</h4>
       <span class="tech">Qdrant · multi-tenant, ACL-filtered</span>
@@ -316,8 +316,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="node f shipped" data-id="emb" style="left:1280px; top:1290px;">
       <div class="type">Foundation <span class="st">● Shipped</span></div>
       <h4>Embedding Service</h4>
-      <span class="tech">bge-m3 · dense + sparse</span>
-      <p>Gives every object a meaning-aware fingerprint — find things by what they mean, not what they're called.</p>
+      <span class="tech">bge-m3 · dense + sparse vectors</span>
+      <p>Gives every object two vectors — a dense one for meaning (descriptions, comments, documents) and a sparse one for exact keywords. Together they power hybrid search, each covering the other's blind spots.</p>
     </div>
     <div class="node f shipped" data-id="acl" style="left:1280px; top:1530px;">
       <div class="type">Foundation <span class="st">● Shipped</span></div>
@@ -352,8 +352,8 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="node f progress" data-id="ss" style="left:2500px; top:1250px;">
       <div class="type">Foundation <span class="st">◐ In Progress</span></div>
       <h4>Search Service</h4>
-      <span class="tech">Rust · Qdrant hybrid, dense + sparse, RRF</span>
-      <p>One fast, permission-checked semantic query engine. The single gate for four capabilities.</p>
+      <span class="tech">Rust · Qdrant hybrid (dense + sparse, RRF) + filters</span>
+      <p>One fast search that finds the right records by meaning and by exact words at once — and only ever shows what you're allowed to see. The single foundation behind three capabilities.</p>
     </div>
     <div class="node f progress" data-id="cd" style="left:2980px; top:1490px;">
       <div class="type">Foundation <span class="st">◐ In Progress</span></div>
@@ -383,7 +383,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <div class="type">Foundation <span class="st">○ Planned</span></div>
       <h4>MCP Base</h4>
       <span class="tech">one server + one client over the registry</span>
-      <p>Projects our tools to any AI client, and lets our agent call external tools — built once.</p>
+      <p>One MCP server + client over the registry, built once. Longer term the search service and AI platform each host an agent with its own MCP subprocess — exposing tools to each other and to external clients, e.g. an org-approved Claude desktop borrowing our object-creation tool.</p>
     </div>
     <div class="node f progress" data-id="treg" style="left:4000px; top:1300px;">
       <div class="type">Foundation <span class="st">◐ In Progress</span></div>
@@ -401,7 +401,13 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <div class="type">Foundation <span class="st">◐ In Progress</span></div>
       <h4>Eval Harness + Judge</h4>
       <span class="tech">DeepEval suites · groundedness judge (CI gate)</span>
-      <p>Labeled regression sets per capability plus an LLM-as-judge — the release gate that lets the agent and Q&amp;A ship safely.</p>
+      <p>Labeled regression sets per capability plus an LLM-as-judge — the release gate that lets the agent and grounded answers ship safely.</p>
+    </div>
+    <div class="node f planned" data-id="enrich" style="left:1980px; top:1640px;">
+      <div class="type">Foundation <span class="st">○ Planned</span></div>
+      <h4>Scheduled Enrichment</h4>
+      <span class="tech">Dagster · risk cache + cadence jobs</span>
+      <p>Works out project risk on a regular schedule and saves it ahead of time, so risk shows up in search instantly. It can also write plain explanations of why something's risky — so searching for a worry surfaces the right projects even without the word "risk".</p>
     </div>
 
     <!-- ============ CAPABILITIES (above) ============ -->
@@ -481,12 +487,12 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
     <div class="node c planned" data-id="email" style="left:5040px; top:560px;">
       <div class="type">Capability <span class="st">○ Planned</span></div>
       <h4>Email Capture</h4>
-      <p>CC Integrate on an email; attachments and updates become proposed schedule changes to approve.</p>
+      <p>CC Integrate on an email: attachments and updates become proposed schedule changes to approve — and the message itself is ingested and embedded, a searchable record of the "why" behind an object and the comms that never become schedule data.</p>
     </div>
 
     <div class="node c planned" data-id="chartai" style="left:4380px; top:560px;">
       <div class="type">Capability <span class="st">○ Planned</span></div>
-      <h4>Charts Agentic</h4>
+      <h4>Charts Agent</h4>
       <p>The agent builds and refines visuals in a loop — "now break that down by program and add a trend line" — each step a validated spec.</p>
     </div>
 
@@ -496,9 +502,9 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
       <p>Claude, Slack agents, customer tooling — all can search, ask, and propose changes through MCP. Same approvals, same permissions.</p>
     </div>
     <div class="node c planned" data-id="callrec" style="left:5480px; top:700px;">
-      <div class="type">Capability <span class="st">○ Planned</span></div>
+      <div class="type">Capability <span class="st">○ Research</span></div>
       <h4>Bi-Directional Call Records</h4>
-      <p>Records flow out to any MCP client and results flow back in — same approvals, same ACL, both directions.</p>
+      <p>Exploratory: meeting / call records flowing through MCP in both directions. The plan is high-level — real challenges remain, and it may warrant its own sub-system.</p>
     </div>
 
     <!-- ============ OUTRO PANEL ============ -->
@@ -521,22 +527,22 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(-
   // [from, to] — color follows the *target* status
   const EDGES = [
     // shipped era
-    ['dag','riskv1'], ['dag','riskv2'], ['riskv1','riskv2'],
+    ['dag','riskv1'], ['dag','riskv2'], ['riskv1','riskv2'], ['dag','enrich'],
     ['aiprev','nsum1'], ['aiprev','nsum2'], ['aiprev','whatsrisky'],
     ['lang','ask'], ['emb','ask'], ['qd','ask'], ['acl','ask'], ['cdc','ask'],
     ['nclean','nsum2'],
     ['riskv1','atrisk'], ['riskv2','whatsrisky'], ['atrisk','riskui'], ['whatsrisky','riskui'],
     ['emb','cdc'], ['qd','cdc'], ['emb','nclean'],
     // shipped foundations feed in-progress foundations
-    ['emb','ss'], ['qd','ss'], ['cdc','ss'], ['acl','ss'],
+    ['emb','ss'], ['qd','ss'], ['cdc','ss'], ['acl','ss'], ['enrich','ss'],
     // in-progress
-    ['ss','nls'], ['cd','nls'], ['cd','chart'], ['dropxl','drop'], ['ing','drop'],
+    ['ss','nls'], ['cd','nls'], ['enrich','nls'], ['dropxl','drop'], ['ing','drop'],
     // planned — agent + platform foundations
     ['ss','sugg'], ['emb','sugg'], ['agentm','sugg'],
     ['cd','agentm'], ['ss','agentm'], ['vllm','agentm'], ['cs','agentm'], ['treg','agentm'], ['contracts','agentm'], ['eval','agentm'],
     ['agentm','agentb'], ['treg','agentb'], ['contracts','agentb'],
     ['contracts','cs'],
-    ['chart','chartai'], ['agentm','chartai'],
+    ['chart','chartai'], ['treg','chartai'],
     ['ing','email'], ['cs','email'],
     ['treg','mcpb'], ['cd','mcpb'], ['mcpb','ext'], ['mcpb','callrec']
   ];
